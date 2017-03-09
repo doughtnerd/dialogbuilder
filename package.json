@@ -1,0 +1,20 @@
+{
+  "name": "dialog-maker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Chris Carlson",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2",
+    "mongodb": "^2.2.24",
+    "path": "^0.12.7",
+    "pug": "^2.0.0-beta11",
+    "react": "^15.4.2",
+    "react-dom": "^15.4.2"
+  }
+}

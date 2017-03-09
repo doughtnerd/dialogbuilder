@@ -1,0 +1,210 @@
+var Panel = ReactBootstrap.Panel, Accordion = ReactBootstrap.Accordion;
+var Button = ReactBootstrap.Button, Input = ReactBootstrap.Input;
+var ButtonToolbar = ReactBootstrap.ButtonToolbar;
+var Modal = ReactBootstrap.Modal;
+var OverlayTrigger = ReactBootstrap.OverlayTrigger;
+var ListGroup = ReactBootstrap.ListGroup,ListGroupItem = ReactBootstrap.ListGroupItem;
+
+var urls = {
+  download:"https://somniumworkspace-doughtnerd.c9users.io/dialogs/format",
+  post:"https://somniumworkspace-doughtnerd.c9users.io/dialogs",
+  get:"https://somniumworkspace-doughtnerd.c9users.io/dialogs",
+  put:"",
+  delete:""
+}
+
+function makeRequest(type, url, data, onSuccess) {
+  $.ajax({
+    type: type,
+    url: url,
+    data: data,
+    success: function(data) {
+      onSuccess(data);
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      alert('status code: ' + jqXHR.status + ' errorThrown: ' + errorThrown + ' jqXHR.responseText: ' + jqXHR.responseText);
+    },
+    dataType: "JSON"
+  });
+}
+
+function submitCallback(data) {
+  if(data){
+    alert(data.res);
+  }
+}
+
+var Application = React.createClass({
+  getInitialState:function(){
+    var arr = (typeof localStorage['dialogArray'] != 'undefined') ? JSON.parse(localStorage["dialogArray"]) : [];
+    return{
+      dialogArray:arr
+    };
+  },
+  onAddDialog : function(){
+    this.state.dialogArray.push({dialogText:"",choices:[]});
+    this.forceUpdate();
+  },
+  onRemoveDialog : function(index, event){
+    var arr = this.state.dialogArray;
+    arr.splice(index, 1);
+    this.setState({dialogArray:arr});
+    console.log(arr);
+  },
+  onDialogTextChanged : function(index, event){
+    this.state.dialogArray[index].dialogText = event.target.value;
+    this.forceUpdate();
+  },
+  onAddChoice : function(){
+    console.log(arguments[0]);
+    this.state.dialogArray[arguments[0]].choices.push({text:"",value:"",nextDialog:""});
+    console.log(this.state.dialogArray);
+    this.forceUpdate();
+  },
+  onRemoveChoice : function(dialogIndex, choiceIndex, event){
+    this.state.dialogArray[dialogIndex].choices.splice(choiceIndex,1);
+    this.forceUpdate();
+  },
+  onChoiceTextChanged : function(dialogIndex, choiceIndex, event){
+    this.state.dialogArray[dialogIndex].choices[choiceIndex].text=event.target.value;
+    this.forceUpdate();
+  },
+  onChoiceValueChanged : function(dialogIndex, choiceIndex, event){
+    this.state.dialogArray[dialogIndex].choices[choiceIndex].value=event.target.value;
+    this.forceUpdate();
+  },
+  onChoiceNextDialogChanged : function(dialogIndex, choiceIndex, event){
+    this.state.dialogArray[dialogIndex].choices[choiceIndex].nextDialog=event.target.value;
+    this.forceUpdate();
+  },
+  onSaveAll : function(){
+    console.log(this.state.dialogArray);
+    localStorage.setItem("dialogArray", JSON.stringify(this.state.dialogArray));
+  },
+  onDeleteAll : function(){
+    this.setState({dialogArray:[]});
+  },
+  onSubmit : function(){
+    makeRequest("POST", urls.post, {dialogs:this.state.dialogArray}, submitCallback);
+  },
+  onDownload : function(){
+    window.location = urls.get + "?dialogs="+ JSON.stringify({dialogs:this.state.dialogArray});
+  },
+  render:function(){
+    var rows = [];
+    for(var i =0; i<this.state.dialogArray.length; i++){
+      var choices = [];
+      for(var j = 0; j < this.state.dialogArray[i].choices.length; j++){
+        choices.push(
+          <Choice index={j} parentIndex={i} text={this.state.dialogArray[i].choices[j].text} value={this.state.dialogArray[i].choices[j].value} nextDialog={this.state.dialogArray[i].choices[j].nextDialog} dialogCount={this.state.dialogArray.length} onRemoveChoice={this.onRemoveChoice} onChoiceTextChanged={this.onChoiceTextChanged} onChoiceValueChanged={this.onChoiceValueChanged} onChoiceNextDialogChanged={this.onChoiceNextDialogChanged}/>
+        );
+      }
+      rows.push(
+        <Panel header={"Dialog " + i} eventKey={i} bsStyle="success">
+          <Dialog index={i} dialogText={this.state.dialogArray[i].dialogText} choices={choices} onRemoveDialog={this.onRemoveDialog} onDialogTextChanged={this.onDialogTextChanged} onAddChoice={this.onAddChoice}/>
+        </Panel>
+      );
+    }
+    return (
+      <div>
+        <div className='well'>
+          <DialogList className='well' data={rows}/>
+        </div>
+        <ButtonToolbar>
+          <Button bsStyle="info" onClick={this.onAddDialog}>Add New Dialog</Button>
+          <Button bsStyle="success" onClick={this.onSaveAll}>Save All</Button>
+          <Button bsStyle="success" onClick={this.onSubmit}>Submit All</Button>
+          <Button bsStyle="primary" onClick={this.onDownload}>Download Formatted File</Button>
+          <Button bsStyle="danger" onClick={this.onDeleteAll}>Delete All</Button>
+        </ButtonToolbar>
+      </div>
+    );
+  }
+});
+
+var DialogList = React.createClass({
+  render:function(){
+    return (
+      <div>
+        <Accordion>
+          {this.props.data}
+        </Accordion>
+      </div>
+    );
+  }
+});
+
+var Dialog = React.createClass({
+  render: function(){
+    return(
+      <div>
+        <h4 className="text-center">Dialog {this.props.index}</h4><hr/>
+        <div className='form-group'>
+          <label>Dialog Text</label>
+          <textarea className='form-control' rows="4" cols="50" onChange={this.props.onDialogTextChanged.bind(this, this.props.index)} value={this.props.dialogText}></textarea>
+        </div>
+        <ChoiceList choices={this.props.choices} />
+        <ButtonToolbar>
+          <Button bsStyle="info" onClick={this.props.onAddChoice.bind(this, this.props.index)}>Add Choice</Button>
+          <Button class="delete" bsStyle="danger" onClick={this.props.onRemoveDialog.bind(this, this.props.index)}>Delete Dialog</Button>
+        </ButtonToolbar>
+      </div>
+    );
+  }
+});
+
+var ChoiceList = React.createClass({
+  render:function(){
+    var choices = this.props.choices.map(function(item) {
+      return (
+        <ListGroupItem>
+          {item}
+        </ListGroupItem>
+      );
+    });
+    return (
+      <ListGroup>
+      {choices}
+      </ListGroup>
+    );
+  }
+});
+
+var Choice = React.createClass({
+  render : function(){
+    var nextOptions = [];
+    nextOptions.push(<option value={""}></option>)
+    for (var i = 0; i < this.props.dialogCount; i++){
+      if(i==this.props.nextDialog){
+        nextOptions.push(<option value={i}>{i}</option>);
+      } else {
+        nextOptions.push(<option value={i}>{i}</option>);
+      }
+    }
+    return(
+      <div className='container-fluid choice'>
+        <h4>Choice {this.props.index}</h4>
+        <div className='form-group'>
+          <label>Choice Text</label>
+          <input className='choiceElement form-control' type='text' onChange={this.props.onChoiceTextChanged.bind(this, this.props.parentIndex, this.props.index)} value={this.props.text}></input>
+        </div>
+        <div className='form-group'>
+          <label>Choice Value</label>
+          <input className='choiceElement form-control' type='text' onChange={this.props.onChoiceValueChanged.bind(this, this.props.parentIndex, this.props.index)} value={this.props.value}></input>
+        </div>
+        <div className='form-group'>
+          <label>Next Dialog</label>
+          <select value={this.props.nextDialog} className='choiceElement form-control' onChange={this.props.onChoiceNextDialogChanged.bind(this, this.props.parentIndex, this.props.index)}>
+            {nextOptions}
+          </select>
+        </div>
+        <ButtonToolbar>
+          <Button class="delete" bsStyle="danger" onClick={this.props.onRemoveChoice.bind(this, this.props.parentIndex, this.props.index)}>Delete Choice</Button>
+        </ButtonToolbar>
+      </div>
+    );
+  }
+});
+
+ReactDOM.render(<Application />, document.getElementById("app-hook"));
+//update();
