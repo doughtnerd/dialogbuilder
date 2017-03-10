@@ -71,7 +71,7 @@ function formatDialog(dialog){
   for(var i = 0; i < copy.length; i++){
     copy[i].id=i;
     console.log(copy[i].dialogText);
-    copy[i].dialogText = copy[i].dialogText.replace('/n', '$');
+    copy[i].dialogText = copy[i].dialogText.replace(/\n/, '$');
   }
   return copy;
 }
