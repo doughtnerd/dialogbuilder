@@ -66,6 +66,19 @@ function verifySubmission(entry, res){
 function formatDialog(dialog){
   var result = {};
   var marked = new Array(dialog.length);
+  console.log(dialog[0].dialogText);
+  var copy = JSON.parse(JSON.stringify(dialog));
+  for(var i = 0; i < copy.length; i++){
+    copy[i].id=i;
+    console.log(copy[i].dialogText);
+    copy[i].dialogText = copy[i].dialogText.replace('/n', '$');
+  }
+  return copy;
+}
+/*
+function formatDialog(dialog){
+  var result = {};
+  var marked = new Array(dialog.length);
   var copy = JSON.parse(JSON.stringify(dialog));
   for(var i = 0; i < copy.length; i++){
     copy[i].id=i;
@@ -91,5 +104,5 @@ function formatDialog(dialog){
   
   return result;
 }
-
+*/
 module.exports=router;
