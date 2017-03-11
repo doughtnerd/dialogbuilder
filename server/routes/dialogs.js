@@ -23,6 +23,7 @@ router.post('/submit', function(req,res){
 router.get('/format', function(req,res){
   if(req.query.dialogs!=undefined){
     var dialogs = JSON.parse(req.query.dialogs).dialogs
+    var formatted = formatDialog(dialogs);
     if(verifyDialog(dialogs, res)){
       res.json(formatDialog(dialogs));
     }
@@ -107,11 +108,10 @@ function verifyDialog(dialogs, res){
     }
   for(var index = 0; index < dialogs.length; index++){
     var entry = dialogs[index];
-    console.log(entry);
     var i = 0;
     for(var name in entry) {
-       if(entry[name]==false){
-         res.status(400).send("Property "  + name + " in Dialog " + i + " was empty.");
+       if(entry[name]==undefined){
+         res.status(400).send("Property "  + name + " in Dialog " + index + " was empty.");
          return false;
        }
         if(entry.choices!=undefined){
@@ -127,10 +127,11 @@ function verifyDialog(dialogs, res){
                return false;
              }
            }
-           i++;
+          
         } else {
           entry.choices=[];
         }
+       i++;
     }
   }
   return true;
@@ -151,6 +152,9 @@ function formatDialog(dialog){
   for(var i = 0; i < copy.length; i++){
     if(!copy[i].hasOwnProperty('id')){
       copy[i].id =i;
+    }
+    if(!copy[i].hasOwnProperty('choices')){
+      copy[i].choices = [];
     }
     copy[i].dialogText = copy[i].dialogText.replace(/\n/g, '$');
   }

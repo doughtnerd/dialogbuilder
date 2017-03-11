@@ -11,8 +11,9 @@ var ListGroup = ReactBootstrap.ListGroup,
     ListGroupItem = ReactBootstrap.ListGroupItem;
 
 var urls = {
-  post: "/dialogs/submit",
-  get: "/dialogs/retrieve",
+  post: "http://somniumworkspace-doughtnerd.c9users.io/dialogs/submit",
+  get: "http://somniumworkspace-doughtnerd.c9users.io/dialogs/retrieve",
+  format: "http://somniumworkspace-doughtnerd.c9users.io/dialogs/format",
   put: "",
   delete: ""
 };
@@ -96,7 +97,7 @@ var Application = React.createClass({
     makeRequest("POST", urls.post, { dialogs: this.state.dialogArray, name: this.state.dialogName }, submitCallback);
   },
   onDownload: function onDownload() {
-    window.location = urls.get + "?dialogs=" + JSON.stringify({ dialogs: this.state.dialogArray });
+    window.location = urls.format + "?dialogs=" + JSON.stringify({ dialogs: this.state.dialogArray });
   },
   OnServerDialogSelected: function OnServerDialogSelected(dialogData, event) {
     this.setState({ dialogArray: dialogData.dialog, dialogName: dialogData.name });
