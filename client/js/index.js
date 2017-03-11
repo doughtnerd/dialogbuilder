@@ -11,9 +11,9 @@ var ListGroup = ReactBootstrap.ListGroup,
     ListGroupItem = ReactBootstrap.ListGroupItem;
 
 var urls = {
-  post: "http://somniumworkspace-doughtnerd.c9users.io/dialogs/submit",
-  get: "http://somniumworkspace-doughtnerd.c9users.io/dialogs/retrieve",
-  format: "http://somniumworkspace-doughtnerd.c9users.io/dialogs/format",
+  post: "/dialogs/submit",
+  get: "/dialogs/retrieve",
+  format: "/dialogs/format",
   put: "",
   delete: ""
 };
