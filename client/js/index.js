@@ -11,8 +11,8 @@ var ListGroup = ReactBootstrap.ListGroup,
     ListGroupItem = ReactBootstrap.ListGroupItem;
 
 var urls = {
-  post: "/dialogs",
-  get: "/dialogs",
+  post: "http://somniumworkspace-doughtnerd.c9users.io/dialogs/submit",
+  get: "http://somniumworkspace-doughtnerd.c9users.io/dialogs/retrieve",
   put: "",
   delete: ""
 };
@@ -43,9 +43,14 @@ var Application = React.createClass({
 
   getInitialState: function getInitialState() {
     var arr = typeof localStorage['dialogArray'] != 'undefined' ? JSON.parse(localStorage["dialogArray"]) : [];
+    var name = typeof localStorage['dialogName'] != 'undefined' ? JSON.parse(localStorage["dialogName"]) : "";
     return {
-      dialogArray: arr
+      dialogArray: arr,
+      dialogName: name
     };
+  },
+  onDialogNameChanged: function onDialogNameChanged(event) {
+    this.setState({ dialogName: event.target.value });
   },
   onAddDialog: function onAddDialog() {
     this.state.dialogArray.push({ dialogText: "", choices: [] });
@@ -55,16 +60,13 @@ var Application = React.createClass({
     var arr = this.state.dialogArray;
     arr.splice(index, 1);
     this.setState({ dialogArray: arr });
-    console.log(arr);
   },
   onDialogTextChanged: function onDialogTextChanged(index, event) {
     this.state.dialogArray[index].dialogText = event.target.value;
     this.forceUpdate();
   },
   onAddChoice: function onAddChoice() {
-    console.log(arguments[0]);
     this.state.dialogArray[arguments[0]].choices.push({ text: "", value: "", nextDialog: "" });
-    console.log(this.state.dialogArray);
     this.forceUpdate();
   },
   onRemoveChoice: function onRemoveChoice(dialogIndex, choiceIndex, event) {
@@ -84,17 +86,20 @@ var Application = React.createClass({
     this.forceUpdate();
   },
   onSaveAll: function onSaveAll() {
-    console.log(this.state.dialogArray);
     localStorage.setItem("dialogArray", JSON.stringify(this.state.dialogArray));
+    localStorage.setItem("dialogName", JSON.stringify(this.state.dialogName));
   },
   onDeleteAll: function onDeleteAll() {
     this.setState({ dialogArray: [] });
   },
   onSubmit: function onSubmit() {
-    makeRequest("POST", urls.post, { dialogs: this.state.dialogArray }, submitCallback);
+    makeRequest("POST", urls.post, { dialogs: this.state.dialogArray, name: this.state.dialogName }, submitCallback);
   },
   onDownload: function onDownload() {
     window.location = urls.get + "?dialogs=" + JSON.stringify({ dialogs: this.state.dialogArray });
+  },
+  OnServerDialogSelected: function OnServerDialogSelected(dialogData, event) {
+    this.setState({ dialogArray: dialogData.dialog, dialogName: dialogData.name });
   },
   render: function render() {
     var rows = [];
@@ -111,40 +116,107 @@ var Application = React.createClass({
     }
     return React.createElement(
       "div",
-      null,
+      { className: "row" },
       React.createElement(
         "div",
-        { className: "well" },
-        React.createElement(DialogList, { className: "well", data: rows })
+        { className: "col-xs-4" },
+        React.createElement(ServerData, { OnServerDialogSelected: this.OnServerDialogSelected })
       ),
       React.createElement(
-        ButtonToolbar,
-        null,
+        "div",
+        { className: "col-xs-8" },
         React.createElement(
-          Button,
-          { bsStyle: "info", onClick: this.onAddDialog },
-          "Add New Dialog"
+          "div",
+          { className: "well" },
+          React.createElement(
+            "div",
+            { className: "form-group" },
+            React.createElement(
+              "label",
+              null,
+              "Dialog Name"
+            ),
+            React.createElement("input", { className: "choiceElement form-control", type: "text", value: this.state.dialogName, onChange: this.onDialogNameChanged })
+          ),
+          React.createElement(DialogList, { className: "well", data: rows })
         ),
         React.createElement(
-          Button,
-          { bsStyle: "success", onClick: this.onSaveAll },
-          "Save All"
-        ),
-        React.createElement(
-          Button,
-          { bsStyle: "success", onClick: this.onSubmit },
-          "Submit All"
-        ),
-        React.createElement(
-          Button,
-          { bsStyle: "primary", onClick: this.onDownload },
-          "Download Formatted File"
-        ),
-        React.createElement(
-          Button,
-          { bsStyle: "danger", onClick: this.onDeleteAll },
-          "Delete All"
+          ButtonToolbar,
+          null,
+          React.createElement(
+            Button,
+            { bsStyle: "info", onClick: this.onAddDialog },
+            "Add New Dialog"
+          ),
+          React.createElement(
+            Button,
+            { bsStyle: "success", onClick: this.onSaveAll },
+            "Save All"
+          ),
+          React.createElement(
+            Button,
+            { bsStyle: "success", onClick: this.onSubmit },
+            "Submit All"
+          ),
+          React.createElement(
+            Button,
+            { bsStyle: "primary", onClick: this.onDownload },
+            "Download Formatted File"
+          ),
+          React.createElement(
+            Button,
+            { bsStyle: "danger", onClick: this.onDeleteAll },
+            "Delete All"
+          )
         )
+      )
+    );
+  }
+});
+
+var ServerData = React.createClass({
+  displayName: "ServerData",
+
+  getInitialState: function getInitialState() {
+    return { dialogData: [] };
+  },
+  componentDidMount: function componentDidMount() {
+    var request = urls.get + "?query=" + JSON.stringify({});
+    $.get(request, this.processServerData);
+  },
+  processServerData: function processServerData(data) {
+    var dialogData = [];
+    for (var i = 0; i < data.length; i++) {
+      dialogData.push(data[i]);
+    }
+    this.setState({ dialogData: dialogData });
+  },
+  render: function render() {
+    var names = [];
+    for (var i = 0; i < this.state.dialogData.length; i++) {
+      names.push(React.createElement(
+        Button,
+        { className: "full-width-button", bsStyle: "default", onClick: this.props.OnServerDialogSelected.bind(this, this.state.dialogData[i]) },
+        this.state.dialogData[i].name
+      ));
+    }
+    return React.createElement(
+      "div",
+      { className: "well side-panel" },
+      React.createElement(
+        "h4",
+        { className: "centered-text" },
+        "Data On Server"
+      ),
+      React.createElement(
+        "p",
+        null,
+        " Click on a button to load a dialog from the server "
+      ),
+      React.createElement(
+        "div",
+        null,
+        names
       )
     );
   }

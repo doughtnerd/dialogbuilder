@@ -47,3 +47,15 @@ footer{
 .well{
     background-color:#daedee;
 }
+
+.side-panel{
+  height:auto;
+}
+
+.full-width-button{
+  width:100%;
+}
+
+.centered-text{
+  text-align:center;
+}

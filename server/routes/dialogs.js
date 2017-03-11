@@ -5,27 +5,79 @@ var router = express.Router();
   
 var MONGO_URI = 'mongodb://admin:Holylaw1@ds017886.mlab.com:17886/dialogdb';
 
-router.route('/')
-  .get(function(req, res){
-    if(req.query.dialogs!=undefined){
-      res.json(formatDialog(JSON.parse(req.query.dialogs).dialogs));
-    } else {
-      res.json({message:"No dialog data found"});
+router.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
+router.post('/submit', function(req,res){
+  var entryName = req.body.name;
+  var entryDialog = req.body.dialogs;
+  if(verifyDialog(entryDialog, res) && verifyName(entryName, res)){
+      var submission = {name:entryName, dialog:entryDialog}
+      submitEntry(submission, res);
+  }
+});
+
+router.get('/format', function(req,res){
+  if(req.query.dialogs!=undefined){
+    var dialogs = JSON.parse(req.query.dialogs).dialogs
+    if(verifyDialog(dialogs, res)){
+      res.json(formatDialog(dialogs));
     }
-  })
-  .post(function(req,res){
-    var newEntry ={original: req.body.dialogs};
-      if(verifySubmission(newEntry, res)){
-          newEntry.formatted = formatDialog(newEntry.original);
-          submitEntry(newEntry, res);
+  } else {
+    res.status(404);
+    res.end();
+  }
+});
+
+router.get('/retrieve', function(req,res){
+  if(req.query.query!=undefined){
+    getDialogByQuery(JSON.parse(req.query.query), res);
+  }
+  else if(req.query.name!=undefined){
+    getDialogByName(req.query.name, res);
+  }
+});
+    
+function getDialogByQuery(query, res){
+  getDialog(query, function(err, data){
+      if(data){
+        res.send(data);
+      } else {
+        res.status(404).send(err);
       }
-  })
-  .put(function(req,res){
-    
-  })
-  .delete(function(req,res){
-    
   });
+}
+    
+function getDialogByName(name, res){
+  getDialog({name:name}, function(err, data){
+      if(data){
+        res.send(data);
+      } else {
+        res.status(404).send(err);
+      }
+  });
+}
+
+function getDialog(query, callback){
+  var error;
+  mongo.connect(MONGO_URI, function(err, db){
+    if(!err){
+      var collection = db.collection('dialogs');
+      collection.find(query).toArray(function(err, data){
+          if(!err){
+            callback(undefined, data);
+          } else {
+            callback(err, undefined);
+          }
+        });
+    } else {
+      callback("Could not connect to database.", undefined);
+    }
+  });
+}
     
 function submitEntry(entry, res){
   var error;
@@ -34,10 +86,9 @@ function submitEntry(entry, res){
       var collection = db.collection('dialogs');
       collection.insert(entry, function(err, data){
         if(!err){
-          res.send({res:true, message:"Successful"});
-          console.log("Successful submission");
+          console.log("Successful");
+          res.send({res:true, message:"Submission Successful"});
         } else {
-          console.log("error inserting.");
           res.send({res:false, message:"Failed to insert new entry into database " + err});
         }
       });
@@ -49,16 +100,46 @@ function submitEntry(entry, res){
   });
 }    
 
-//Check for floating/unconnected dialogs.
-//Check for blank fields. This might solve the floating problem.
-//Check for circular dependencies.
-function verifySubmission(entry, res){
-  var i = 0;
-  for(var name in entry) {
-     if(entry[name]==false){
-       res.send({res:false, message:"Property "  + name + " in Dialog " + i + " was empty."});
-       return false;
-     }
+function verifyDialog(dialogs, res){
+  if(!dialogs){
+    res.status(400).send("Submission was empty");
+      return false;
+    }
+  for(var index = 0; index < dialogs.length; index++){
+    var entry = dialogs[index];
+    console.log(entry);
+    var i = 0;
+    for(var name in entry) {
+       if(entry[name]==false){
+         res.status(400).send("Property "  + name + " in Dialog " + i + " was empty.");
+         return false;
+       }
+        if(entry.choices!=undefined){
+             for(var j = 0; j < entry.choices.length; j++){
+             for(var prop in entry.choices[j]){
+                if(entry.choices[j][prop]=="" || entry.choices[j][prop]==undefined){
+                  res.status(400).send(prop + " in Choice "  + j + " in Dialog " + i + " was empty.");
+                  return false;
+                }
+             }
+             if(dialogs[entry.choices[j].nextDialog]==undefined){
+               res.status(400).send("nextDialog in Choice "  + j + " in Dialog " + i + " is not valid.");
+               return false;
+             }
+           }
+           i++;
+        } else {
+          entry.choices=[];
+        }
+    }
+  }
+  return true;
+}
+
+function verifyName(name, res){
+  if(!name){
+    res.status(400).send("Name cannot be empty or null");
+    return false;
   }
   return true;
 }
@@ -66,43 +147,14 @@ function verifySubmission(entry, res){
 function formatDialog(dialog){
   var result = {};
   var marked = new Array(dialog.length);
-  console.log(dialog[0].dialogText);
   var copy = JSON.parse(JSON.stringify(dialog));
   for(var i = 0; i < copy.length; i++){
-    copy[i].id=i;
-    console.log(copy[i].dialogText);
+    if(!copy[i].hasOwnProperty('id')){
+      copy[i].id =i;
+    }
     copy[i].dialogText = copy[i].dialogText.replace(/\n/g, '$');
   }
   return copy;
 }
-/*
-function formatDialog(dialog){
-  var result = {};
-  var marked = new Array(dialog.length);
-  var copy = JSON.parse(JSON.stringify(dialog));
-  for(var i = 0; i < copy.length; i++){
-    copy[i].id=i;
-  }
-  for(i = 0; i < copy.length; i++){
-    var d = copy[i];
-    if(d.hasOwnProperty('choices')){
-      var arr = d.choices;
-      for(var j = 0; j < arr.length; j++){
-        var index = arr[j].nextDialog;
-        arr[j].nextDialog = copy[index];
-        marked[index] = true;
-      }
-    } else {
-      d.choices = [];
-    }
-  }
-  for(i = 0; i < copy.length; i++){
-    if(marked[i]!=true){
-      result = copy[i];
-    }
-  }
-  
-  return result;
-}
-*/
+
 module.exports=router;
