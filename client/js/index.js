@@ -35,7 +35,7 @@ function makeRequest(type, url, data, onSuccess) {
 
 function submitCallback(data) {
   if (data) {
-    alert(data.res);
+    alert(data.message);
   }
 }
 

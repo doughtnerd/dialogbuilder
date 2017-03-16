@@ -118,12 +118,12 @@ function verifyDialog(dialogs, res){
              for(var j = 0; j < entry.choices.length; j++){
              for(var prop in entry.choices[j]){
                 if(entry.choices[j][prop]=="" || entry.choices[j][prop]==undefined){
-                  res.status(400).send(prop + " in Choice "  + j + " in Dialog " + i + " was empty.");
+                  res.status(400).send(prop + " in Choice "  + j + " in Dialog " + index + " was empty.");
                   return false;
                 }
              }
              if(dialogs[entry.choices[j].nextDialog]==undefined){
-               res.status(400).send("nextDialog in Choice "  + j + " in Dialog " + i + " is not valid.");
+               res.status(400).send("nextDialog in Choice "  + j + " in Dialog " + index + " is not valid.");
                return false;
              }
            }
