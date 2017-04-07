@@ -22,10 +22,11 @@ router.post('/submit', function(req,res){
 
 router.get('/format', function(req,res){
   if(req.query.dialogs!=undefined){
+    var delimiter = req.query.delimiter != undefined && req.query.delimiter.length == 1 ? req.query.delimiter : undefined
     var dialogs = JSON.parse(req.query.dialogs).dialogs
-    var formatted = formatDialog(dialogs);
+    //var formatted = formatDialog(dialogs, delimiter);
     if(verifyDialog(dialogs, res)){
-      res.json(formatDialog(dialogs));
+      res.status(200).send(formatDialog(dialogs, delimiter));
     }
   } else {
     res.status(404);
@@ -161,7 +162,8 @@ function verifyName(name, res){
   return true;
 }
 
-function formatDialog(dialog){
+function formatDialog(dialog, delimiter){
+  
   var result = {};
   var marked = new Array(dialog.length);
   var copy = JSON.parse(JSON.stringify(dialog));
@@ -175,7 +177,10 @@ function formatDialog(dialog){
     if(!copy[i].hasOwnProperty('conditions')){
       copy[i].conditions = [];
     }
-    copy[i].dialogText = copy[i].dialogText.replace(/\n/g, '$');
+    if(delimiter!=undefined){
+      copy[i].dialogText = copy[i].dialogText.replace(/\n|\/n/g, delimiter);
+    }
+
   }
   return copy;
 }

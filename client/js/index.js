@@ -95,7 +95,6 @@ var Application = React.createClass({
     this.forceUpdate();
   },
   onRemoveCondition: function onRemoveCondition(dialogIndex, conditionIndex, event) {
-    console.log(conditionIndex, this.state.dialogArray);
     this.state.dialogArray[dialogIndex].conditions.splice(conditionIndex, 1);
     this.forceUpdate();
   },
@@ -122,7 +121,7 @@ var Application = React.createClass({
     makeRequest("POST", urls.post, { dialogs: this.state.dialogArray, name: this.state.dialogName }, submitCallback);
   },
   onDownload: function onDownload() {
-    window.location = urls.format + "?dialogs=" + JSON.stringify({ dialogs: this.state.dialogArray });
+    window.location = urls.format + "?delimiter=$&dialogs=" + JSON.stringify({ dialogs: this.state.dialogArray });
   },
   OnServerDialogSelected: function OnServerDialogSelected(dialogData, event) {
     this.setState({ dialogArray: dialogData.dialog, dialogName: dialogData.name });
