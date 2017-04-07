@@ -81,7 +81,6 @@ function getDialog(query, callback){
 }
     
 function submitEntry(entry, res){
-  var error;
   mongo.connect(MONGO_URI, function(err, db){
     if(!err){
       var collection = db.collection('dialogs');
@@ -101,6 +100,8 @@ function submitEntry(entry, res){
   });
 }    
 
+function verifyLegalDialogId(){}
+
 function verifyDialog(dialogs, res){
   if(!dialogs){
     res.status(400).send("Submission was empty");
@@ -115,7 +116,7 @@ function verifyDialog(dialogs, res){
          return false;
        }
         if(entry.choices!=undefined){
-             for(var j = 0; j < entry.choices.length; j++){
+           for(var j = 0; j < entry.choices.length; j++){
              for(var prop in entry.choices[j]){
                 if(entry.choices[j][prop]=="" || entry.choices[j][prop]==undefined){
                   res.status(400).send(prop + " in Choice "  + j + " in Dialog " + index + " was empty.");
@@ -127,9 +128,24 @@ function verifyDialog(dialogs, res){
                return false;
              }
            }
-          
         } else {
           entry.choices=[];
+        }
+        if(entry.conditions!=undefined){
+          for(j = 0; j < entry.conditions.length; j++){
+            for(prop in entry.conditions[j]){
+              if(entry.conditions[j].prop == "" || entry.conditions[j][prop]==undefined){
+                res.status(400).send(prop + " in Condition " + j + " in Dialog " + index + " was empty");
+                return false;
+              }
+            }
+            if(dialogs[entry.conditions[j].failDialog]==undefined){
+              res.status(400).send("failDialog in Condition "  + j + " in Dialog " + index + " is not valid.");
+               return false;
+            }
+          }
+        } else {
+          entry.conditions = [];
         }
        i++;
     }
@@ -155,6 +171,9 @@ function formatDialog(dialog){
     }
     if(!copy[i].hasOwnProperty('choices')){
       copy[i].choices = [];
+    }
+    if(!copy[i].hasOwnProperty('conditions')){
+      copy[i].conditions = [];
     }
     copy[i].dialogText = copy[i].dialogText.replace(/\n/g, '$');
   }

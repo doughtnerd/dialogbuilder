@@ -6,12 +6,13 @@ var OverlayTrigger = ReactBootstrap.OverlayTrigger;
 var ListGroup = ReactBootstrap.ListGroup,ListGroupItem = ReactBootstrap.ListGroupItem;
 
 var urls = {
-  post:"/dialogs/submit",
-  get:"/dialogs/retrieve",
-  format:"/dialogs/format",
-  put:"",
-  delete:""
-}
+  post: "./dialogs/submit",
+  get: "./dialogs/retrieve",
+  format: "./dialogs/format",
+  put: "",
+  delete: ""
+};
+
 
 function makeRequest(type, url, data, onSuccess) {
   $.ajax({
@@ -30,7 +31,7 @@ function makeRequest(type, url, data, onSuccess) {
 
 function submitCallback(data) {
   if(data){
-    alert(data.message);
+    alert(data.res);
   }
 }
 
@@ -47,7 +48,7 @@ var Application = React.createClass({
     this.setState({dialogName:event.target.value});
   },
   onAddDialog : function(){
-    this.state.dialogArray.push({dialogText:"", choices:[]});
+    this.state.dialogArray.push({dialogText:"", choices:[], conditions:[]});
     this.forceUpdate();
   },
   onRemoveDialog : function(index, event){
@@ -71,12 +72,37 @@ var Application = React.createClass({
     this.state.dialogArray[dialogIndex].choices[choiceIndex].text=event.target.value;
     this.forceUpdate();
   },
+  onChoiceFlagChanged : function(dialogIndex, choiceIndex, event){
+    this.state.dialogArray[dialogIndex].choices[choiceIndex].flag=event.target.value;
+    this.forceUpdate();
+  },
   onChoiceValueChanged : function(dialogIndex, choiceIndex, event){
     this.state.dialogArray[dialogIndex].choices[choiceIndex].value=event.target.value;
     this.forceUpdate();
   },
   onChoiceNextDialogChanged : function(dialogIndex, choiceIndex, event){
     this.state.dialogArray[dialogIndex].choices[choiceIndex].nextDialog=event.target.value;
+    this.forceUpdate();
+  },
+  onAddCondition : function(){
+    this.state.dialogArray[arguments[0]].conditions.push({flag:"",value:""});
+    this.forceUpdate();
+  },
+  onRemoveCondition : function(dialogIndex, conditionIndex, event){
+    console.log(conditionIndex, this.state.dialogArray)
+    this.state.dialogArray[dialogIndex].conditions.splice(conditionIndex,1);
+    this.forceUpdate();
+  },
+  onConditionFlagChanged : function(dialogIndex, conditionIndex, event){
+    this.state.dialogArray[dialogIndex].conditions[conditionIndex].flag=event.target.value;
+    this.forceUpdate();
+  },
+  onConditionValueChanged : function(dialogIndex, conditionIndex, event){
+    this.state.dialogArray[dialogIndex].conditions[conditionIndex].value=event.target.value;
+    this.forceUpdate();
+  },
+  onConditionFailDialogChanged : function(dialogIndex, conditionIndex, event){
+    this.state.dialogArray[dialogIndex].conditions[conditionIndex].failDialog=event.target.value;
     this.forceUpdate();
   },
   onSaveAll : function(){
@@ -101,12 +127,18 @@ var Application = React.createClass({
       var choices = [];
       for(var j = 0; j < this.state.dialogArray[i].choices.length; j++){
         choices.push(
-          <Choice index={j} parentIndex={i} text={this.state.dialogArray[i].choices[j].text} value={this.state.dialogArray[i].choices[j].value} nextDialog={this.state.dialogArray[i].choices[j].nextDialog} dialogCount={this.state.dialogArray.length} onRemoveChoice={this.onRemoveChoice} onChoiceTextChanged={this.onChoiceTextChanged} onChoiceValueChanged={this.onChoiceValueChanged} onChoiceNextDialogChanged={this.onChoiceNextDialogChanged}/>
+          <Choice index={j} parentIndex={i} text={this.state.dialogArray[i].choices[j].text} flag={this.state.dialogArray[i].choices[j].flag} value={this.state.dialogArray[i].choices[j].value} nextDialog={this.state.dialogArray[i].choices[j].nextDialog} dialogCount={this.state.dialogArray.length} onRemoveChoice={this.onRemoveChoice} onChoiceTextChanged={this.onChoiceTextChanged} onChoiceFlagChanged={this.onChoiceFlagChanged} onChoiceValueChanged={this.onChoiceValueChanged} onChoiceNextDialogChanged={this.onChoiceNextDialogChanged}/>
+        );
+      }
+      var conditions = [];
+      for(j = 0; j < this.state.dialogArray[i].conditions.length; j++){
+        conditions.push(
+          <Condition index={j} parentIndex={i} flag={this.state.dialogArray[i].conditions[j].flag} value={this.state.dialogArray[i].conditions[j].value} onRemoveCondition={this.onRemoveCondition} onConditionFlagChanged={this.onConditionFlagChanged} onConditionValueChanged={this.onConditionValueChanged} onConditionFailDialogChanged={this.onConditionFailDialogChanged} conditionFailDialog={this.state.dialogArray[i].conditions[j].failDialog} dialogCount={this.state.dialogArray.length}/>
         );
       }
       rows.push(
         <Panel header={"Dialog " + i} eventKey={i} bsStyle="success">
-          <Dialog index={i} dialogText={this.state.dialogArray[i].dialogText} choices={choices} onRemoveDialog={this.onRemoveDialog} onDialogTextChanged={this.onDialogTextChanged} onAddChoice={this.onAddChoice}/>
+          <Dialog index={i} dialogText={this.state.dialogArray[i].dialogText} conditions={conditions} choices={choices} onRemoveDialog={this.onRemoveDialog} onDialogTextChanged={this.onDialogTextChanged} onAddCondition={this.onAddCondition} onAddChoice={this.onAddChoice}/>
         </Panel>
       );
     }
@@ -121,6 +153,7 @@ var Application = React.createClass({
               <label>Dialog Name</label>
               <input className='choiceElement form-control' type='text' value={this.state.dialogName} onChange={this.onDialogNameChanged}></input>
             </div>
+            <h5><b>Dialog Data</b></h5>
             <DialogList className='well' data={rows}/>
           </div>
           <ButtonToolbar>
@@ -189,8 +222,10 @@ var Dialog = React.createClass({
           <label>Dialog Text</label>
           <textarea className='form-control' rows="4" cols="50" onChange={this.props.onDialogTextChanged.bind(this, this.props.index)} value={this.props.dialogText}></textarea>
         </div>
+        <ConditionList conditions={this.props.conditions}/>
         <ChoiceList choices={this.props.choices} />
         <ButtonToolbar>
+          <Button bsStyle="info" onClick={this.props.onAddCondition.bind(this, this.props.index)}>Add Condition</Button>
           <Button bsStyle="info" onClick={this.props.onAddChoice.bind(this, this.props.index)}>Add Choice</Button>
           <Button class="delete" bsStyle="danger" onClick={this.props.onRemoveDialog.bind(this, this.props.index)}>Delete Dialog</Button>
         </ButtonToolbar>
@@ -199,19 +234,72 @@ var Dialog = React.createClass({
   }
 });
 
-var ChoiceList = React.createClass({
+var ConditionList = React.createClass({
   render:function(){
-    var choices = this.props.choices.map(function(item) {
+    var conditions = this.props.conditions.map(function(item, i) {
       return (
-        <ListGroupItem>
+        <Panel header={"Condition " + i} eventKey={i} bsStyle="success">
           {item}
-        </ListGroupItem>
+        </Panel>
       );
     });
     return (
-      <ListGroup>
-      {choices}
-      </ListGroup>
+      <Accordion>
+        {conditions}
+      </Accordion>
+    );
+  }
+});
+
+var Condition = React.createClass({
+  render:function(){
+    var nextOptions = [];
+    nextOptions.push(<option value={""}></option>)
+    for (var i = 0; i < this.props.dialogCount; i++){
+      if(i==this.props.nextDialog){
+        nextOptions.push(<option value={i}>{i}</option>);
+      } else {
+        nextOptions.push(<option value={i}>{i}</option>);
+      }
+    }
+    <h4>Condition {this.props.index}</h4>
+    return(
+      <div className='container-fluid'>
+        <div className='form-group'>
+          <label>Condition Flag</label>
+          <input className='form-control' type='text' onChange={this.props.onConditionFlagChanged.bind(this, this.props.parentIndex, this.props.index)} value={this.props.flag}></input>
+        </div>
+        <div className='form-group'>
+          <label>Condition Value</label>
+          <input className='form-control' type='text' onChange={this.props.onConditionValueChanged.bind(this, this.props.parentIndex, this.props.index)} value={this.props.value}></input>
+        </div>
+        <div className='form-group'>
+          <label>Dialog If Fail</label>
+          <select value={this.props.failDialog} className='form-control' onChange={this.props.onConditionFailDialogChanged.bind(this, this.props.parentIndex, this.props.index)}>
+            {nextOptions}
+          </select>
+        </div>
+        <ButtonToolbar>
+          <Button class="delete" bsStyle="danger" onClick={this.props.onRemoveCondition.bind(this, this.props.parentIndex, this.props.index)}>Delete Condition</Button>
+        </ButtonToolbar>
+      </div>
+    );
+  }
+});
+
+var ChoiceList = React.createClass({
+  render:function(){
+    var choices = this.props.choices.map(function(item, i) {
+      return (
+        <Panel header={"Choice " + i} eventKey={i} bsStyle="success">
+          {item}
+        </Panel>
+      );
+    });
+    return (
+      <Accordion>
+        {choices}
+      </Accordion>
     );
   }
 });
@@ -227,12 +315,16 @@ var Choice = React.createClass({
         nextOptions.push(<option value={i}>{i}</option>);
       }
     }
+    <h4>Choice {this.props.index}</h4>
     return(
       <div className='container-fluid choice'>
-        <h4>Choice {this.props.index}</h4>
         <div className='form-group'>
           <label>Choice Text</label>
           <input className='choiceElement form-control' type='text' onChange={this.props.onChoiceTextChanged.bind(this, this.props.parentIndex, this.props.index)} value={this.props.text}></input>
+        </div>
+        <div className='form-group'>
+          <label>Choice Flag</label>
+          <input className='choiceElement form-control' type='text' onChange={this.props.onChoiceFlagChanged.bind(this, this.props.parentIndex, this.props.index)} value={this.props.flag}></input>
         </div>
         <div className='form-group'>
           <label>Choice Value</label>

@@ -11,9 +11,9 @@ var ListGroup = ReactBootstrap.ListGroup,
     ListGroupItem = ReactBootstrap.ListGroupItem;
 
 var urls = {
-  post: "/dialogs/submit",
-  get: "/dialogs/retrieve",
-  format: "/dialogs/format",
+  post: "./dialogs/submit",
+  get: "./dialogs/retrieve",
+  format: "./dialogs/format",
   put: "",
   delete: ""
 };
@@ -35,7 +35,7 @@ function makeRequest(type, url, data, onSuccess) {
 
 function submitCallback(data) {
   if (data) {
-    alert(data.message);
+    alert(data.res);
   }
 }
 
@@ -54,7 +54,7 @@ var Application = React.createClass({
     this.setState({ dialogName: event.target.value });
   },
   onAddDialog: function onAddDialog() {
-    this.state.dialogArray.push({ dialogText: "", choices: [] });
+    this.state.dialogArray.push({ dialogText: "", choices: [], conditions: [] });
     this.forceUpdate();
   },
   onRemoveDialog: function onRemoveDialog(index, event) {
@@ -78,12 +78,37 @@ var Application = React.createClass({
     this.state.dialogArray[dialogIndex].choices[choiceIndex].text = event.target.value;
     this.forceUpdate();
   },
+  onChoiceFlagChanged: function onChoiceFlagChanged(dialogIndex, choiceIndex, event) {
+    this.state.dialogArray[dialogIndex].choices[choiceIndex].flag = event.target.value;
+    this.forceUpdate();
+  },
   onChoiceValueChanged: function onChoiceValueChanged(dialogIndex, choiceIndex, event) {
     this.state.dialogArray[dialogIndex].choices[choiceIndex].value = event.target.value;
     this.forceUpdate();
   },
   onChoiceNextDialogChanged: function onChoiceNextDialogChanged(dialogIndex, choiceIndex, event) {
     this.state.dialogArray[dialogIndex].choices[choiceIndex].nextDialog = event.target.value;
+    this.forceUpdate();
+  },
+  onAddCondition: function onAddCondition() {
+    this.state.dialogArray[arguments[0]].conditions.push({ flag: "", value: "" });
+    this.forceUpdate();
+  },
+  onRemoveCondition: function onRemoveCondition(dialogIndex, conditionIndex, event) {
+    console.log(conditionIndex, this.state.dialogArray);
+    this.state.dialogArray[dialogIndex].conditions.splice(conditionIndex, 1);
+    this.forceUpdate();
+  },
+  onConditionFlagChanged: function onConditionFlagChanged(dialogIndex, conditionIndex, event) {
+    this.state.dialogArray[dialogIndex].conditions[conditionIndex].flag = event.target.value;
+    this.forceUpdate();
+  },
+  onConditionValueChanged: function onConditionValueChanged(dialogIndex, conditionIndex, event) {
+    this.state.dialogArray[dialogIndex].conditions[conditionIndex].value = event.target.value;
+    this.forceUpdate();
+  },
+  onConditionFailDialogChanged: function onConditionFailDialogChanged(dialogIndex, conditionIndex, event) {
+    this.state.dialogArray[dialogIndex].conditions[conditionIndex].failDialog = event.target.value;
     this.forceUpdate();
   },
   onSaveAll: function onSaveAll() {
@@ -107,12 +132,16 @@ var Application = React.createClass({
     for (var i = 0; i < this.state.dialogArray.length; i++) {
       var choices = [];
       for (var j = 0; j < this.state.dialogArray[i].choices.length; j++) {
-        choices.push(React.createElement(Choice, { index: j, parentIndex: i, text: this.state.dialogArray[i].choices[j].text, value: this.state.dialogArray[i].choices[j].value, nextDialog: this.state.dialogArray[i].choices[j].nextDialog, dialogCount: this.state.dialogArray.length, onRemoveChoice: this.onRemoveChoice, onChoiceTextChanged: this.onChoiceTextChanged, onChoiceValueChanged: this.onChoiceValueChanged, onChoiceNextDialogChanged: this.onChoiceNextDialogChanged }));
+        choices.push(React.createElement(Choice, { index: j, parentIndex: i, text: this.state.dialogArray[i].choices[j].text, flag: this.state.dialogArray[i].choices[j].flag, value: this.state.dialogArray[i].choices[j].value, nextDialog: this.state.dialogArray[i].choices[j].nextDialog, dialogCount: this.state.dialogArray.length, onRemoveChoice: this.onRemoveChoice, onChoiceTextChanged: this.onChoiceTextChanged, onChoiceFlagChanged: this.onChoiceFlagChanged, onChoiceValueChanged: this.onChoiceValueChanged, onChoiceNextDialogChanged: this.onChoiceNextDialogChanged }));
+      }
+      var conditions = [];
+      for (j = 0; j < this.state.dialogArray[i].conditions.length; j++) {
+        conditions.push(React.createElement(Condition, { index: j, parentIndex: i, flag: this.state.dialogArray[i].conditions[j].flag, value: this.state.dialogArray[i].conditions[j].value, onRemoveCondition: this.onRemoveCondition, onConditionFlagChanged: this.onConditionFlagChanged, onConditionValueChanged: this.onConditionValueChanged, onConditionFailDialogChanged: this.onConditionFailDialogChanged, conditionFailDialog: this.state.dialogArray[i].conditions[j].failDialog, dialogCount: this.state.dialogArray.length }));
       }
       rows.push(React.createElement(
         Panel,
         { header: "Dialog " + i, eventKey: i, bsStyle: "success" },
-        React.createElement(Dialog, { index: i, dialogText: this.state.dialogArray[i].dialogText, choices: choices, onRemoveDialog: this.onRemoveDialog, onDialogTextChanged: this.onDialogTextChanged, onAddChoice: this.onAddChoice })
+        React.createElement(Dialog, { index: i, dialogText: this.state.dialogArray[i].dialogText, conditions: conditions, choices: choices, onRemoveDialog: this.onRemoveDialog, onDialogTextChanged: this.onDialogTextChanged, onAddCondition: this.onAddCondition, onAddChoice: this.onAddChoice })
       ));
     }
     return React.createElement(
@@ -138,6 +167,15 @@ var Application = React.createClass({
               "Dialog Name"
             ),
             React.createElement("input", { className: "choiceElement form-control", type: "text", value: this.state.dialogName, onChange: this.onDialogNameChanged })
+          ),
+          React.createElement(
+            "h5",
+            null,
+            React.createElement(
+              "b",
+              null,
+              "Dialog Data"
+            )
           ),
           React.createElement(DialogList, { className: "well", data: rows })
         ),
@@ -263,10 +301,16 @@ var Dialog = React.createClass({
         ),
         React.createElement("textarea", { className: "form-control", rows: "4", cols: "50", onChange: this.props.onDialogTextChanged.bind(this, this.props.index), value: this.props.dialogText })
       ),
+      React.createElement(ConditionList, { conditions: this.props.conditions }),
       React.createElement(ChoiceList, { choices: this.props.choices }),
       React.createElement(
         ButtonToolbar,
         null,
+        React.createElement(
+          Button,
+          { bsStyle: "info", onClick: this.props.onAddCondition.bind(this, this.props.index) },
+          "Add Condition"
+        ),
         React.createElement(
           Button,
           { bsStyle: "info", onClick: this.props.onAddChoice.bind(this, this.props.index) },
@@ -282,19 +326,115 @@ var Dialog = React.createClass({
   }
 });
 
-var ChoiceList = React.createClass({
-  displayName: "ChoiceList",
+var ConditionList = React.createClass({
+  displayName: "ConditionList",
 
   render: function render() {
-    var choices = this.props.choices.map(function (item) {
+    var conditions = this.props.conditions.map(function (item, i) {
       return React.createElement(
-        ListGroupItem,
-        null,
+        Panel,
+        { header: "Condition " + i, eventKey: i, bsStyle: "success" },
         item
       );
     });
     return React.createElement(
-      ListGroup,
+      Accordion,
+      null,
+      conditions
+    );
+  }
+});
+
+var Condition = React.createClass({
+  displayName: "Condition",
+
+  render: function render() {
+    var nextOptions = [];
+    nextOptions.push(React.createElement("option", { value: "" }));
+    for (var i = 0; i < this.props.dialogCount; i++) {
+      if (i == this.props.nextDialog) {
+        nextOptions.push(React.createElement(
+          "option",
+          { value: i },
+          i
+        ));
+      } else {
+        nextOptions.push(React.createElement(
+          "option",
+          { value: i },
+          i
+        ));
+      }
+    }
+    React.createElement(
+      "h4",
+      null,
+      "Condition ",
+      this.props.index
+    );
+    return React.createElement(
+      "div",
+      { className: "container-fluid" },
+      React.createElement(
+        "div",
+        { className: "form-group" },
+        React.createElement(
+          "label",
+          null,
+          "Condition Flag"
+        ),
+        React.createElement("input", { className: "form-control", type: "text", onChange: this.props.onConditionFlagChanged.bind(this, this.props.parentIndex, this.props.index), value: this.props.flag })
+      ),
+      React.createElement(
+        "div",
+        { className: "form-group" },
+        React.createElement(
+          "label",
+          null,
+          "Condition Value"
+        ),
+        React.createElement("input", { className: "form-control", type: "text", onChange: this.props.onConditionValueChanged.bind(this, this.props.parentIndex, this.props.index), value: this.props.value })
+      ),
+      React.createElement(
+        "div",
+        { className: "form-group" },
+        React.createElement(
+          "label",
+          null,
+          "Dialog If Fail"
+        ),
+        React.createElement(
+          "select",
+          { value: this.props.failDialog, className: "form-control", onChange: this.props.onConditionFailDialogChanged.bind(this, this.props.parentIndex, this.props.index) },
+          nextOptions
+        )
+      ),
+      React.createElement(
+        ButtonToolbar,
+        null,
+        React.createElement(
+          Button,
+          { "class": "delete", bsStyle: "danger", onClick: this.props.onRemoveCondition.bind(this, this.props.parentIndex, this.props.index) },
+          "Delete Condition"
+        )
+      )
+    );
+  }
+});
+
+var ChoiceList = React.createClass({
+  displayName: "ChoiceList",
+
+  render: function render() {
+    var choices = this.props.choices.map(function (item, i) {
+      return React.createElement(
+        Panel,
+        { header: "Choice " + i, eventKey: i, bsStyle: "success" },
+        item
+      );
+    });
+    return React.createElement(
+      Accordion,
       null,
       choices
     );
@@ -322,15 +462,15 @@ var Choice = React.createClass({
         ));
       }
     }
+    React.createElement(
+      "h4",
+      null,
+      "Choice ",
+      this.props.index
+    );
     return React.createElement(
       "div",
       { className: "container-fluid choice" },
-      React.createElement(
-        "h4",
-        null,
-        "Choice ",
-        this.props.index
-      ),
       React.createElement(
         "div",
         { className: "form-group" },
@@ -340,6 +480,16 @@ var Choice = React.createClass({
           "Choice Text"
         ),
         React.createElement("input", { className: "choiceElement form-control", type: "text", onChange: this.props.onChoiceTextChanged.bind(this, this.props.parentIndex, this.props.index), value: this.props.text })
+      ),
+      React.createElement(
+        "div",
+        { className: "form-group" },
+        React.createElement(
+          "label",
+          null,
+          "Choice Flag"
+        ),
+        React.createElement("input", { className: "choiceElement form-control", type: "text", onChange: this.props.onChoiceFlagChanged.bind(this, this.props.parentIndex, this.props.index), value: this.props.flag })
       ),
       React.createElement(
         "div",
