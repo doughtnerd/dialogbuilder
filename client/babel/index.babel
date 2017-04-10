@@ -6,13 +6,12 @@ var OverlayTrigger = ReactBootstrap.OverlayTrigger;
 var ListGroup = ReactBootstrap.ListGroup,ListGroupItem = ReactBootstrap.ListGroupItem;
 
 var urls = {
-  post: "./dialogs/submit",
-  get: "./dialogs/retrieve",
-  format: "./dialogs/format",
-  put: "",
-  delete: ""
-};
-
+  submit:{url:"https://somniumworkspace-doughtnerd.c9users.io/dialogs", method:"POST"},
+  find:{url:"https://somniumworkspace-doughtnerd.c9users.io/dialogs", method:"GET"},
+  format:{url:"https://somniumworkspace-doughtnerd.c9users.io/dialogs/format", method:"GET"},
+  update:{url:"https://somniumworkspace-doughtnerd.c9users.io/dialogs", method:"PUT"},
+  delete:{url:"https://somniumworkspace-doughtnerd.c9users.io/dialogs", method:"DELETE"}
+}
 
 function makeRequest(type, url, data, onSuccess) {
   $.ajax({
@@ -23,7 +22,7 @@ function makeRequest(type, url, data, onSuccess) {
       onSuccess(data);
     },
     error: function(jqXHR, textStatus, errorThrown) {
-      alert('status code: ' + jqXHR.status + ' errorThrown: ' + errorThrown + ' jqXHR.responseText: ' + jqXHR.responseText);
+      alert('Error: ' + jqXHR.status + ' - ' + errorThrown + '\nError Message: ' + jqXHR.responseText);
     },
     dataType: "JSON"
   });
@@ -31,7 +30,7 @@ function makeRequest(type, url, data, onSuccess) {
 
 function submitCallback(data) {
   if(data){
-    alert(data.res);
+    alert(data.message);
   }
 }
 
@@ -113,12 +112,13 @@ var Application = React.createClass({
     this.setState({dialogArray:[]});
   },
   onSubmit : function(){
-    makeRequest("POST", urls.post, {dialogs:this.state.dialogArray, name:this.state.dialogName}, submitCallback);
+    makeRequest(urls.submit.method, urls.submit.url, {dialogs:this.state.dialogArray, name:this.state.dialogName}, submitCallback);
   },
   onDownload : function(){
-    window.location = urls.format + "?dialogs="+ JSON.stringify({dialogs:this.state.dialogArray});
+    window.location = urls.format.url + "?dialogs="+ JSON.stringify({dialogs:this.state.dialogArray});
   },
   OnServerDialogSelected : function(dialogData, event){
+    console.log(dialogData);
     this.setState({dialogArray:dialogData.dialog, dialogName:dialogData.name});
   },
   render:function(){
@@ -133,7 +133,7 @@ var Application = React.createClass({
       var conditions = [];
       for(j = 0; j < this.state.dialogArray[i].conditions.length; j++){
         conditions.push(
-          <Condition index={j} parentIndex={i} flag={this.state.dialogArray[i].conditions[j].flag} value={this.state.dialogArray[i].conditions[j].value} onRemoveCondition={this.onRemoveCondition} onConditionFlagChanged={this.onConditionFlagChanged} onConditionValueChanged={this.onConditionValueChanged} onConditionFailDialogChanged={this.onConditionFailDialogChanged} conditionFailDialog={this.state.dialogArray[i].conditions[j].failDialog} dialogCount={this.state.dialogArray.length}/>
+          <Condition index={j} parentIndex={i} flag={this.state.dialogArray[i].conditions[j].flag} value={this.state.dialogArray[i].conditions[j].value} onRemoveCondition={this.onRemoveCondition} onConditionFlagChanged={this.onConditionFlagChanged} onConditionValueChanged={this.onConditionValueChanged} onConditionFailDialogChanged={this.onConditionFailDialogChanged} failDialog={this.state.dialogArray[i].conditions[j].failDialog} dialogCount={this.state.dialogArray.length}/>
         );
       }
       rows.push(
@@ -158,10 +158,10 @@ var Application = React.createClass({
           </div>
           <ButtonToolbar>
             <Button bsStyle="info" onClick={this.onAddDialog}>Add New Dialog</Button>
-            <Button bsStyle="success" onClick={this.onSaveAll}>Save All</Button>
-            <Button bsStyle="success" onClick={this.onSubmit}>Submit All</Button>
-            <Button bsStyle="primary" onClick={this.onDownload}>Download Formatted File</Button>
-            <Button bsStyle="danger" onClick={this.onDeleteAll}>Delete All</Button>
+            <Button bsStyle="success" onClick={this.onSaveAll}>Save to Browser</Button>
+            <Button bsStyle="success" onClick={this.onSubmit}>Submit</Button>
+            <Button bsStyle="primary" onClick={this.onDownload}>Get Formatted Dialog</Button>
+            <Button bsStyle="danger" onClick={this.onDeleteAll}>Clear All</Button>
           </ButtonToolbar>
         </div>
       </div>
@@ -174,7 +174,7 @@ var ServerData = React.createClass({
     return {dialogData:[]};
   },
   componentDidMount: function(){
-    var request = urls.get + "?query="+ JSON.stringify({});
+    var request = urls.find.url + "?query="+ JSON.stringify({});
     $.get(request, this.processServerData);
   },
   processServerData: function(data){

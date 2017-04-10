@@ -3,7 +3,7 @@ var express = require('express');
 var mongo = require('mongodb');
 var router = express.Router();
   
-var MONGO_URI = 'mongodb://admin:Holylaw1@ds017886.mlab.com:17886/dialogdb';
+var MONGO_URI = process.env.MONGO_URI;
 
 router.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -11,12 +11,30 @@ router.use(function(req, res, next) {
   next();
 });
 
-router.post('/submit', function(req,res){
+router.post('/', function(req,res){
   var entryName = req.body.name;
   var entryDialog = req.body.dialogs;
   if(verifyDialog(entryDialog, res) && verifyName(entryName, res)){
       var submission = {name:entryName, dialog:entryDialog}
       submitEntry(submission, res);
+  }
+});
+
+router.delete('/', function(req,res){
+  var name = req.body.name;
+  if(name){
+    mongo.connect(MONGO_URI, function(err, db){
+      if(!err){
+        var collection = db.collection('dialogs');
+        collection.remove({name:name});
+        res.status(202).end();
+      } else {
+        res.status(500).send("Could not connect to database.");
+      }
+    });
+    
+  } else {
+    res.status(400).end();
   }
 });
 
@@ -29,12 +47,12 @@ router.get('/format', function(req,res){
       res.status(200).send(formatDialog(dialogs, delimiter));
     }
   } else {
-    res.status(404);
+    res.status(400);
     res.end();
   }
 });
 
-router.get('/retrieve', function(req,res){
+router.get('/', function(req,res){
   if(req.query.query!=undefined){
     getDialogByQuery(JSON.parse(req.query.query), res);
   }
@@ -48,7 +66,7 @@ function getDialogByQuery(query, res){
       if(data){
         res.send(data);
       } else {
-        res.status(404).send(err);
+        res.status(400).send(err);
       }
   });
 }
@@ -87,21 +105,18 @@ function submitEntry(entry, res){
       var collection = db.collection('dialogs');
       collection.insert(entry, function(err, data){
         if(!err){
-          console.log("Successful");
-          res.send({res:true, message:"Submission Successful"});
+          res.status(201).send({message:"Submission Successful"});//.send({res:true, message:"Submission Successful"});
         } else {
-          res.send({res:false, message:"Failed to insert new entry into database " + err});
+          res.status(500).send("Failed to insert new entry into database - " + err);
         }
       });
       db.close();
     } else {
       console.log("error connecting." + err);
-      res.send({res:false, message:"Could not connect to submission database."});
+      res.status(500).send("Could not connect to database.");
     }
   });
 }    
-
-function verifyLegalDialogId(){}
 
 function verifyDialog(dialogs, res){
   if(!dialogs){

@@ -11,11 +11,11 @@ var ListGroup = ReactBootstrap.ListGroup,
     ListGroupItem = ReactBootstrap.ListGroupItem;
 
 var urls = {
-  post: "./dialogs/submit",
-  get: "./dialogs/retrieve",
-  format: "./dialogs/format",
-  put: "",
-  delete: ""
+  submit: { url: "./dialogs", method: "POST" },
+  find: { url: "./dialogs", method: "GET" },
+  format: { url: "./dialogs/format", method: "GET" },
+  update: { url: "./dialogs", method: "PUT" },
+  delete: { url: "./dialogs", method: "DELETE" }
 };
 
 function makeRequest(type, url, data, onSuccess) {
@@ -27,7 +27,7 @@ function makeRequest(type, url, data, onSuccess) {
       onSuccess(data);
     },
     error: function error(jqXHR, textStatus, errorThrown) {
-      alert('status code: ' + jqXHR.status + ' errorThrown: ' + errorThrown + ' jqXHR.responseText: ' + jqXHR.responseText);
+      alert('Error: ' + jqXHR.status + ' - ' + errorThrown + '\nError Message: ' + jqXHR.responseText);
     },
     dataType: "JSON"
   });
@@ -35,7 +35,7 @@ function makeRequest(type, url, data, onSuccess) {
 
 function submitCallback(data) {
   if (data) {
-    alert(data.res);
+    alert(data.message);
   }
 }
 
@@ -95,6 +95,7 @@ var Application = React.createClass({
     this.forceUpdate();
   },
   onRemoveCondition: function onRemoveCondition(dialogIndex, conditionIndex, event) {
+    console.log(conditionIndex, this.state.dialogArray);
     this.state.dialogArray[dialogIndex].conditions.splice(conditionIndex, 1);
     this.forceUpdate();
   },
@@ -118,12 +119,13 @@ var Application = React.createClass({
     this.setState({ dialogArray: [] });
   },
   onSubmit: function onSubmit() {
-    makeRequest("POST", urls.post, { dialogs: this.state.dialogArray, name: this.state.dialogName }, submitCallback);
+    makeRequest(urls.submit.method, urls.submit.url, { dialogs: this.state.dialogArray, name: this.state.dialogName }, submitCallback);
   },
   onDownload: function onDownload() {
-    window.location = urls.format + "?delimiter=$&dialogs=" + JSON.stringify({ dialogs: this.state.dialogArray });
+    window.location = urls.format.url + "?dialogs=" + JSON.stringify({ dialogs: this.state.dialogArray });
   },
   OnServerDialogSelected: function OnServerDialogSelected(dialogData, event) {
+    console.log(dialogData);
     this.setState({ dialogArray: dialogData.dialog, dialogName: dialogData.name });
   },
   render: function render() {
@@ -135,7 +137,7 @@ var Application = React.createClass({
       }
       var conditions = [];
       for (j = 0; j < this.state.dialogArray[i].conditions.length; j++) {
-        conditions.push(React.createElement(Condition, { index: j, parentIndex: i, flag: this.state.dialogArray[i].conditions[j].flag, value: this.state.dialogArray[i].conditions[j].value, onRemoveCondition: this.onRemoveCondition, onConditionFlagChanged: this.onConditionFlagChanged, onConditionValueChanged: this.onConditionValueChanged, onConditionFailDialogChanged: this.onConditionFailDialogChanged, conditionFailDialog: this.state.dialogArray[i].conditions[j].failDialog, dialogCount: this.state.dialogArray.length }));
+        conditions.push(React.createElement(Condition, { index: j, parentIndex: i, flag: this.state.dialogArray[i].conditions[j].flag, value: this.state.dialogArray[i].conditions[j].value, onRemoveCondition: this.onRemoveCondition, onConditionFlagChanged: this.onConditionFlagChanged, onConditionValueChanged: this.onConditionValueChanged, onConditionFailDialogChanged: this.onConditionFailDialogChanged, failDialog: this.state.dialogArray[i].conditions[j].failDialog, dialogCount: this.state.dialogArray.length }));
       }
       rows.push(React.createElement(
         Panel,
@@ -189,22 +191,22 @@ var Application = React.createClass({
           React.createElement(
             Button,
             { bsStyle: "success", onClick: this.onSaveAll },
-            "Save All"
+            "Save to Browser"
           ),
           React.createElement(
             Button,
             { bsStyle: "success", onClick: this.onSubmit },
-            "Submit All"
+            "Submit"
           ),
           React.createElement(
             Button,
             { bsStyle: "primary", onClick: this.onDownload },
-            "Download Formatted File"
+            "Get Formatted Dialog"
           ),
           React.createElement(
             Button,
             { bsStyle: "danger", onClick: this.onDeleteAll },
-            "Delete All"
+            "Clear All"
           )
         )
       )
@@ -219,7 +221,7 @@ var ServerData = React.createClass({
     return { dialogData: [] };
   },
   componentDidMount: function componentDidMount() {
-    var request = urls.get + "?query=" + JSON.stringify({});
+    var request = urls.find.url + "?query=" + JSON.stringify({});
     $.get(request, this.processServerData);
   },
   processServerData: function processServerData(data) {
